@@ -18,21 +18,36 @@
 	'INCLUDE "title.bas"
 
 	'
-        PRINT "PONY DEMO"
         WAIT
         DEFINE 0,3,ponysprites
-        X=50
-       
+        X=160
+				PONYNUM=0
+
 	'
         WAIT
 
+		DIM #FGColors(4)
+		Restore FGColors
+		DIM #BGColors(4)
+		Restore BGColors
 
 InfiniteLoop:
         WAIT
-        IF (X > 8) THEN X=X-1 ELSE X=160
-        SPRITE 0,X + VISIBLE + ZOOMX2, 50 + ZOOMY2, SPR00+SPR_PINK + ((X/16 AND 1)*8) 
-        SPRITE 1,X + VISIBLE + ZOOMX2, 50 + ZOOMY2, SPR02+SPR_RED
+        IF (X > 8) THEN X=X-1 ELSE X=160: IF(PONYNUM=3) THEN PONYNUM=0 ELSE PONYNUM=PONYNUM+1
+				#where=SCREENADDR(1,1)
+				index=PONYNUM
+				colour=CS_WHITE
+				gosub PrintString
+        SPRITE 0,X + VISIBLE + ZOOMX2, 50 + ZOOMY2, SPR00+FGColors(PONYNUM) + ((X/16 AND 1)*8)
+        SPRITE 1,X + VISIBLE + ZOOMX2, 50 + ZOOMY2, SPR02+BGColors(PONYNUM)
 	GOTO InfiniteLoop
+
+
+FGColors:
+	DATA SPR_PINK,SPR_LIGHTBLUE,SPR_BLUE,SPR_ORANGE
+
+BGColors:
+	DATA SPR_RED,SPR_ORANGE,SPR_PURPLE,SPR_YELLOW
 
 ponysprites:
 
@@ -69,4 +84,76 @@ BITMAP ".......#"
 BITMAP "........"
 BITMAP "........"
 
+REM -------------------------------------------------------------------------
+REM PrintString - Print a string selected from an array of strings.
+REM -------------------------------------------------------------------------
+REM
+REM Notes:
+REM - The only commands that make use of indirection are poke/peek.
+REM
+REM Input:
+REM     index - String index of interest (in the range 0 to 255).
+REM     #where - Address in BACKTAB to start writing the string to.
+REM     colour - String colour (in the range CS_BLACK to CS_WHITE).
+REM
+REM Trashes:-
+REM     c, length, #data, #addr, #where
+REM
+REM -------------------------------------------------------------------------
 
+PrintString: procedure
+
+' Get the start address in ROM of the string we need.
+	#addr=ArrayOfStrings(index)
+
+' Get the length of the string.
+	length=peek(#addr): #addr=#addr+1
+
+' Print the string on screen.
+	for  c=1 to length
+	#data=(peek(#addr)*8)+colour	' Get the character and convert it into BACKTAB card format.
+	poke #where,#data				' Write it to BACKTAB.
+	#addr=#addr+1					' Move to the next character's location in ROM.
+	#where=#where+1					' Move to the next position on screen.
+	next
+
+	end
+REM -------------------------------------------------------------------------
+REM PrintString - END
+REM -------------------------------------------------------------------------
+
+
+' An array of pointers to strings.
+ArrayOfStrings:
+	data varptr Msg1(0)
+	data varptr Msg2(0)
+	data varptr Msg3(0)
+	data varptr Msg4(0)
+
+' String #1
+Msg1:
+	asm DECLE @@Msg1End-@@Msg1Start
+	asm @@Msg1Start:
+	data "Pinky Pie         "
+	asm @@Msg1End:
+
+' String #2
+Msg2:
+	asm DECLE @@Msg2End-@@Msg2Start
+	asm @@Msg2Start:
+	data "Rainbow Dash      "
+	asm @@Msg2End:
+
+' String #3
+Msg3:
+	asm DECLE @@Msg3End-@@Msg3Start
+	asm @@Msg3Start:
+	data "Princess Luna    "
+	asm @@Msg3End:
+
+	' String #4
+	Msg4:
+		asm DECLE @@Msg4End-@@Msg4Start
+		asm @@Msg4Start:
+		data "Applejack     "
+		asm @@Msg4End:
